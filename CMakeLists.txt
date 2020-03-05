@@ -1,7 +1,8 @@
 # minimal CMakeLists.txt for the AWS SDK for C++
 cmake_minimum_required(VERSION 3.2)
 
-set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+#set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+#set(CMAKE_CXX_STANDARD 11)
 
 # "my-example" is just an example value.
 project(pam-dynamo)
@@ -12,12 +13,19 @@ project(pam-dynamo)
 find_package(AWSSDK REQUIRED COMPONENTS dynamodb)
 
 # find openssl
-find_package(openssl REQUIRED)
+find_package(OpenSSL REQUIRED)
+
+# find PAM
+find_package(PAM REQUIRED)
 
 # The executable name and its sourcefiles
 add_executable(pam-dynamo main.cpp user.cpp)
+#add_executable(pam-dynamo aws.cpp)
+#add_library(pam-dynamo SHARED main.cpp user.cpp)
+
 
 # The libraries used by your executable.
 # "aws-cpp-sdk-s3" is just an example.
 target_link_libraries(pam-dynamo ${AWSSDK_LINK_LIBRARIES})
 target_link_libraries(pam-dynamo OpenSSL::SSL)
+target_link_libraries(pam-dynamo ${PAM_LIBRARIES})

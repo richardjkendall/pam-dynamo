@@ -49,25 +49,18 @@ bool hash_password(const std::string& unhashed, std::string& hashed) {
     // could not get message digest context
   }
   return success;
-
-/*
-	if((*digest = (unsigned char *)OPENSSL_malloc(EVP_MD_size(EVP_sha256()))) == NULL)
-		handleErrors();
-
-	if(1 != EVP_DigestFinal_ex(mdctx, *digest, digest_len))
-		handleErrors();
-*/
 } 
 
 bool User::authenticate(std::string password) {
   bool ret_val = false;
   Aws::SDKOptions options;
   Aws::InitAPI(options);
+  std::cout << "init API" << std::endl;
   {
     // get strings ready
-    const Aws::String as_ddbtable(ddbtable);
-    const Aws::String as_realm(realm);
-    const Aws::String as_username(username);
+    const Aws::String as_ddbtable(ddbtable.c_str());
+    const Aws::String as_realm(realm.c_str());
+    const Aws::String as_username(username.c_str());
     
     // get request ready
     Aws::Client::ClientConfiguration clientConfig;
@@ -89,8 +82,11 @@ bool User::authenticate(std::string password) {
     req.SetProjectionExpression("password,scopes");
 
     // fire request
+    std::cout << "sending request" << std::endl;
     const Aws::DynamoDB::Model::GetItemOutcome& result = dynamoClient.GetItem(req);
+    std::cout << "back from call" << std::endl;
     if(result.IsSuccess()) {
+      std::cout << "result is a success" << std::endl;
       // got a response
       const Aws::Map<Aws::String, Aws::DynamoDB::Model::AttributeValue>& item = result.GetResult().GetItem();
       if (item.size() > 1) {
@@ -98,13 +94,15 @@ bool User::authenticate(std::string password) {
         if(item.count("password") > 0) {
           // get password from record
           Aws::String saved_password = item.find("password")->second.GetS();
-          std::cout << "password from record = " << saved_password << std::endl;
+          std::string std_saved_password(saved_password.c_str(), saved_password.size());
+
+          std::cout << "password from record = " << std_saved_password << std::endl;
           // calc hash for password provided by user
           std::string hashed_pword;
           if(hash_password(password, hashed_pword)) {
             std::cout << "hashed input password = " << hashed_pword << std::endl;
             // compare the hashes
-            if(saved_password.compare(hashed_pword) == 0) {
+            if(std_saved_password.compare(hashed_pword) == 0) {
               std::cout << "password matches" << std::endl;
               ret_val = true;
             } else {
@@ -114,6 +112,8 @@ bool User::authenticate(std::string password) {
           } else {
             // failed to hash password
           }
+        } else {
+          std::cout << "no item with password found" << std::endl;
         }
       } else {
         // got no items, user does not exist
