@@ -18,11 +18,8 @@ find_package(OpenSSL REQUIRED)
 # find PAM
 find_package(PAM REQUIRED)
 
-# The executable name and its sourcefiles
-add_executable(pam-dynamo main.cpp user.cpp)
-#add_executable(pam-dynamo aws.cpp)
-#add_library(pam-dynamo SHARED main.cpp user.cpp)
-
+# The library name and its sourcefiles
+add_library(pam-dynamo SHARED main.cpp user.cpp log.cpp)
 
 # The libraries used by your executable.
 # "aws-cpp-sdk-s3" is just an example.

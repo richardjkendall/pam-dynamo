@@ -9,8 +9,10 @@
 #include <openssl/evp.h>
 
 #include "User.h"
+#include "Log.h"
 
-User::User(std::string p_ddbtable, std::string p_realm, std::string p_username) {
+User::User(std::string p_region, std::string p_ddbtable, std::string p_realm, std::string p_username) {
+  region = p_region;
   ddbtable = p_ddbtable;
   realm = p_realm;
   username = p_username;
@@ -40,13 +42,16 @@ bool hash_password(const std::string& unhashed, std::string& hashed) {
         }
       } else {
         // could not add message to digest
+        std::clog << kLogErr << "Unable to add password to digest" << std::endl;
       }
     } else {
       // could not init digest algorithm
+      std::clog << kLogErr << "Unable to init digest algorithm" << std::endl;
     }
     EVP_MD_CTX_free(mdctx);
   } else {
     // could not get message digest context
+    std::clog << kLogErr << "Could not get message digest context" << std::endl;
   }
   return success;
 } 
@@ -54,17 +59,18 @@ bool hash_password(const std::string& unhashed, std::string& hashed) {
 bool User::authenticate(std::string password) {
   bool ret_val = false;
   Aws::SDKOptions options;
+  std::clog << kLogInfo << "Init for AWS API" << std::endl;
   Aws::InitAPI(options);
-  std::cout << "init API" << std::endl;
   {
     // get strings ready
     const Aws::String as_ddbtable(ddbtable.c_str());
     const Aws::String as_realm(realm.c_str());
     const Aws::String as_username(username.c_str());
-    
+    const Aws::String as_region(region.c_str());
+
     // get request ready
     Aws::Client::ClientConfiguration clientConfig;
-    clientConfig.region = "ap-southeast-2";
+    clientConfig.region = as_region;
     Aws::DynamoDB::DynamoDBClient dynamoClient(clientConfig);
     Aws::DynamoDB::Model::GetItemRequest req;
     
@@ -82,11 +88,11 @@ bool User::authenticate(std::string password) {
     req.SetProjectionExpression("password,scopes");
 
     // fire request
-    std::cout << "sending request" << std::endl;
+    std::clog << kLogInfo << "Calling DynamoDB API in region=" << region << std::endl;
     const Aws::DynamoDB::Model::GetItemOutcome& result = dynamoClient.GetItem(req);
-    std::cout << "back from call" << std::endl;
+    std::clog << kLogInfo << "Back from call to API" << std::endl;
     if(result.IsSuccess()) {
-      std::cout << "result is a success" << std::endl;
+      std::clog << kLogInfo << "Result is a success from API" << std::endl;
       // got a response
       const Aws::Map<Aws::String, Aws::DynamoDB::Model::AttributeValue>& item = result.GetResult().GetItem();
       if (item.size() > 1) {
@@ -96,32 +102,34 @@ bool User::authenticate(std::string password) {
           Aws::String saved_password = item.find("password")->second.GetS();
           std::string std_saved_password(saved_password.c_str(), saved_password.size());
 
-          std::cout << "password from record = " << std_saved_password << std::endl;
+          std::clog << kLogDebug << "Password from record = " << std_saved_password << std::endl;
           // calc hash for password provided by user
           std::string hashed_pword;
           if(hash_password(password, hashed_pword)) {
-            std::cout << "hashed input password = " << hashed_pword << std::endl;
+            std::clog << kLogDebug << "Hashed input password = " << hashed_pword << std::endl;
             // compare the hashes
             if(std_saved_password.compare(hashed_pword) == 0) {
-              std::cout << "password matches" << std::endl;
+              std::clog << kLogInfo << "Password matches what is stored" << std::endl;
               ret_val = true;
             } else {
-              std::cout << "password does not match" << std::endl;
+              std::clog << kLogInfo << "Password does not match what is stored" << std::endl;
               ret_val = false;
             }
           } else {
             // failed to hash password
+            std::clog << kLogErr << "Hashing password failed" << std::endl;
+            ret_val = false;
           }
         } else {
-          std::cout << "no item with password found" << std::endl;
+          std::clog << kLogInfo << "No item with password field found" << std::endl;
         }
       } else {
         // got no items, user does not exist
-        std::cout << "No user found in realm=" << realm << ", with username=" << username << std::endl;
+        std::clog << kLogInfo << "No user found in realm=" << realm << ", with username=" << username << std::endl;
         ret_val = false;
       }
     } else {
-      std::cout << "Failed to query table=" << ddbtable << ", error message=" << result.GetError().GetMessage();
+      std::clog << kLogErr << "Failed to query table=" << ddbtable << ", error message=" << result.GetError().GetMessage();
       ret_val = false;
     }
 
