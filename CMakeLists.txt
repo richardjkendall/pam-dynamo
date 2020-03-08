@@ -14,7 +14,7 @@ find_package(OpenSSL REQUIRED)
 find_package(PAM REQUIRED)
 
 # The library name and its sourcefiles
-add_library(pam-dynamo SHARED main.cpp user.cpp log.cpp)
+add_library(pam-dynamo SHARED main.cpp User.cpp log.cpp)
 
 # link the libraries we need
 target_link_libraries(pam-dynamo ${AWSSDK_LINK_LIBRARIES})
