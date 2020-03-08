@@ -24,13 +24,17 @@ jobs:
       with:
         path: 'source'
 
+    - name: patch AWS SDK for cpack
+      run: |
+        cd $GITHUB_WORKSPACE/aws-sdk-cpp
+        git apply $GITHUB_WORKSPACE/source/aws-sdk-patch.patch
+
     - name: build AWS CPP SDK (dynamodb only)
       run: |
         sudo apt-get update
         sudo apt-get install -y libcurl4-openssl-dev libssl-dev uuid-dev zlib1g-dev libpulse-dev
         mkdir -p $GITHUB_WORKSPACE/sdk_build
         cd $GITHUB_WORKSPACE/sdk_build
-        git apply $GITHUB_WORKSPACE/source/aws-sdk-patch.patch
         cmake ../aws-sdk-cpp -D CMAKE_BUILD_TYPE=RelWithDebInfo -D BUILD_ONLY="dynamodb"
         make
         sudo make install
