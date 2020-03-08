@@ -1,7 +1,5 @@
 name: build-deb-image
 
-# Controls when the action will run. Triggers the workflow on push or pull request 
-# events but only for the master branch
 on:
   push:
     branches: [ master ]
@@ -37,8 +35,8 @@ jobs:
         cd $GITHUB_WORKSPACE/sdk_build
         cmake ../aws-sdk-cpp -D CMAKE_BUILD_TYPE=RelWithDebInfo -D BUILD_ONLY="dynamodb"
         make
-        sudo make install
         cpack -G DEB
+        sudo make install
     
     - name: get libpam-dynamo source code
       uses: actions/checkout@v2
@@ -53,3 +51,6 @@ jobs:
         cmake -DBUILD_SHARED_LIBS=ON -DPAM_DIR=$GITHUB_WORKSPACE/source $GITHUB_WORKSPACE/source
         make
         cpack -G DEB
+    
+    #- name: log in to docker
+    #  run: echo ${{secrets.DOCKERHUB_PASSWORD}} | docker login -u ${{secrets.DOCKERHUB_USERNAME}} --password-stdin
