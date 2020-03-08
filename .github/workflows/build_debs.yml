@@ -27,6 +27,8 @@ jobs:
     # Runs a set of commands using the runners shell
     - name: Get and build AWS SDK
       run: |
+        apt-get update
+        apt-get install -y libcurl4-openssl-dev libssl-dev uuid-dev zlib1g-dev libpulse-dev
         mkdir -p $GITHUB_WORKSPACE/sdk_build
         git clone https://github.com/aws/aws-sdk-cpp.git $GITHUB_WORKSPACE/aws-sdk-cpp
         cd $GITHUB_WORKSPACE/sdk_build
