@@ -37,11 +37,6 @@ jobs:
         make
         cpack -G DEB
         sudo make install
-    
-    - name: get libpam-dynamo source code
-      uses: actions/checkout@v2
-      with:
-        path: 'source'
   
     - name: build & package libpam-dynamo
       run: |
@@ -52,5 +47,18 @@ jobs:
         make
         cpack -G DEB
     
-    #- name: log in to docker
-    #  run: echo ${{secrets.DOCKERHUB_PASSWORD}} | docker login -u ${{secrets.DOCKERHUB_USERNAME}} --password-stdin
+    - name: log in to docker
+      run: echo ${{secrets.DOCKERHUB_PASSWORD}} | docker login -u ${{secrets.DOCKERHUB_USERNAME}} --password-stdin
+    
+    - name: Get the tag for docker
+      id: vars
+      run: echo ::set-output name=tag::$(echo ${GITHUB_REF:10})
+    
+    - name: docker build and publish
+      run: |
+        cd $GITHUB_WORKSPACE/source
+        docker build . -t ubuntu-pam-dynamo:${{steps.vars.outputs.tag}}
+        docker tag ubuntu-pam-dynamo:${{steps.vars.outputs.tag}} ${{secrets.DOCKERHUB_USERNAME}}/ubuntu-pam-dynamo:${{steps.vars.outputs.tag}}
+        docker tag ubuntu-pam-dynamo:${{steps.vars.outputs.tag}} ${{secrets.DOCKERHUB_USERNAME}}/ubuntu-pam-dynamo:latest
+        docker push ${{secrets.DOCKERHUB_USERNAME}}/ubuntu-pam-dynamo:${{steps.vars.outputs.tag}}
+        docker push ${{secrets.DOCKERHUB_USERNAME}}/ubuntu-pam-dynamo:latest
