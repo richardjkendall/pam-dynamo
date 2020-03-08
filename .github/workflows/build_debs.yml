@@ -18,6 +18,11 @@ jobs:
       with:
         path: 'aws-sdk-cpp'
         repository: 'aws/aws-sdk-cpp'
+    
+    - name: get libpam-dynamo source code
+      uses: actions/checkout@v2
+      with:
+        path: 'source'
 
     - name: build AWS CPP SDK (dynamodb only)
       run: |
@@ -25,9 +30,11 @@ jobs:
         sudo apt-get install -y libcurl4-openssl-dev libssl-dev uuid-dev zlib1g-dev libpulse-dev
         mkdir -p $GITHUB_WORKSPACE/sdk_build
         cd $GITHUB_WORKSPACE/sdk_build
+        git apply $GITHUB_WORKSPACE/source/aws-sdk-patch.patch
         cmake ../aws-sdk-cpp -D CMAKE_BUILD_TYPE=RelWithDebInfo -D BUILD_ONLY="dynamodb"
         make
         sudo make install
+        cpack -G DEB
     
     - name: get libpam-dynamo source code
       uses: actions/checkout@v2
