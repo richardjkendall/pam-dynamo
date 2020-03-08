@@ -1,7 +1,7 @@
 #include <cstring>
 #include <ostream>
 
-#include "log.h"
+#include "Log.h"
 
 Log::Log(std::string ident, int facility) {
     facility_ = facility;
