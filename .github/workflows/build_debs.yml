@@ -27,13 +27,13 @@ jobs:
     # Runs a set of commands using the runners shell
     - name: Get and build AWS SDK
       run: |
-        mkdir -p ${{GITHUB_WORKSPACE}}/sdk_build
-        git clone https://github.com/aws/aws-sdk-cpp.git ${{GITHUB_WORKSPACE}}/aws-sdk-cpp
-        cd ${{GITHUB_WORKSPACE}}/sdk_build
+        mkdir -p $GITHUB_WORKSPACE/sdk_build
+        git clone https://github.com/aws/aws-sdk-cpp.git $GITHUB_WORKSPACE/aws-sdk-cpp
+        cd $GITHUB_WORKSPACE/sdk_build
         cmake ../aws-sdk-cpp -D CMAKE_BUILD_TYPE=RelWithDebInfo -D BUILD_ONLY="dynamodb"
         make
         cpack -G DEB
     
     # Runs a single command using the runners shell
     - name: create build directory
-      run: mkdir -p ${{$GITHUB_WORKSPACE}}/build
+      run: mkdir -p $GITHUB_WORKSPACE/build
