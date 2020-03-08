@@ -12,30 +12,32 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
-    # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
-    # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-    - uses: actions/checkout@v2
+    - name: get AWS SDK source code
+      uses: actions/checkout@v2
       with:
-        path: 'source'
+        path: 'aws-sdk-cpp'
+        repository: 'aws/aws-sdk-cpp'
 
     - name: Get and build AWS SDK
       run: |
         sudo apt-get update
         sudo apt-get install -y libcurl4-openssl-dev libssl-dev uuid-dev zlib1g-dev libpulse-dev
         mkdir -p $GITHUB_WORKSPACE/sdk_build
-        git clone https://github.com/aws/aws-sdk-cpp.git $GITHUB_WORKSPACE/aws-sdk-cpp
         cd $GITHUB_WORKSPACE/sdk_build
         cmake ../aws-sdk-cpp -D CMAKE_BUILD_TYPE=RelWithDebInfo -D BUILD_ONLY="dynamodb"
         make
         sudo make install
     
-    - name: create build directory
-      run: mkdir -p $GITHUB_WORKSPACE/build
-    
+    - name: get libpam-dynamo source code
+      uses: actions/checkout@v2
+      with:
+        path: 'source'
+  
     - name: build libpam-dynamo
       run: |
         sudo apt-get install -y libpam0g-dev
+        mkdir -p $GITHUB_WORKSPACE/build
         cd $GITHUB_WORKSPACE/build
-        cmake -DBUILD_SHARED_LIBS=ON -DPAM_DIR=../source ../source
+        cmake -DBUILD_SHARED_LIBS=ON -DPAM_DIR=$GITHUB_WORKSPACE/source $GITHUB_WORKSPACE/source
         cpack -G DEB
