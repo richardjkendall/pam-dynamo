@@ -1,9 +1,6 @@
 # minimal CMakeLists.txt for the AWS SDK for C++
 cmake_minimum_required(VERSION 3.2)
 
-#set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
-#set(CMAKE_CXX_STANDARD 11)
-
 project(pam-dynamo)
 
 # Locate the AWS SDK for C++ package.
@@ -24,6 +21,7 @@ target_link_libraries(pam-dynamo ${AWSSDK_LINK_LIBRARIES})
 target_link_libraries(pam-dynamo OpenSSL::SSL)
 target_link_libraries(pam-dynamo ${PAM_LIBRARIES})
 
+# set install target
 install(TARGETS pam-dynamo
     COMPONENT libraries
     DESTINATION "/lib/x86_64-linux-gnu/security/"
@@ -32,5 +30,4 @@ install(TARGETS pam-dynamo
 # packaging instructions
 SET(CPACK_GENERATOR "DEB")
 SET(CPACK_DEBIAN_PACKAGE_MAINTAINER "rjk") #required
-#SET(CPACK_DEBIAN_PACKAGE_SHLIBDEPS ON)
 INCLUDE(CPack)
