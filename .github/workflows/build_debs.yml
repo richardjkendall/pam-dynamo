@@ -52,7 +52,7 @@ jobs:
     
     - name: Get the tag for docker
       id: vars
-      run: echo ::set-output name=tag::$(echo ${GITHUB_REF:10})
+      run: echo ::set-output name=tag::$(echo ${GITHUB_SHA::8})
     
     - name: docker build and publish
       run: |
