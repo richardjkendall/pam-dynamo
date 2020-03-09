@@ -57,6 +57,8 @@ jobs:
     - name: docker build and publish
       run: |
         cd $GITHUB_WORKSPACE/source
+        cp $GITHUB_WORKSPACE/build/*.deb .
+        cp $GITHUB_WORKSPACE/sdk_build/*.deb .
         docker build . -t ubuntu-pam-dynamo:${{steps.vars.outputs.tag}}
         docker tag ubuntu-pam-dynamo:${{steps.vars.outputs.tag}} ${{secrets.DOCKERHUB_USERNAME}}/ubuntu-pam-dynamo:${{steps.vars.outputs.tag}}
         docker tag ubuntu-pam-dynamo:${{steps.vars.outputs.tag}} ${{secrets.DOCKERHUB_USERNAME}}/ubuntu-pam-dynamo:latest
