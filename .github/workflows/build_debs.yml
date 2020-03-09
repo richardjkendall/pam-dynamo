@@ -1,4 +1,4 @@
-name: build-deb-image
+name: build-image
 
 on:
   push:
