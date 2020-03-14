@@ -37,6 +37,23 @@ jobs:
         make
         cpack -G DEB
         sudo make install
+    
+    - name: get and build sqlite3 3.31
+      run: |
+        cd $GITHUB_WORKSPACE
+        mkdir sqlite3
+        cd sqlite3
+        wget https://www.sqlite.org/2020/sqlite-autoconf-3310100.tar.gz
+        tar xvf sqlite-autoconf-3310100.tar.gz
+        cd sqlite-autoconf-3310100
+        ./configure
+        make
+        sudo make install
+        cd /usr/lib/x86_64-linux-gnu
+        sudo ln -s /usr/local/lib/libsqlite3.so
+        sudo ln -s /usr/local/lib/libsqlite3.so.0
+        cd /usr/include
+        sudo ln -s ../local/include/sqlite3.h
   
     - name: build & package libpam-dynamo
       run: |

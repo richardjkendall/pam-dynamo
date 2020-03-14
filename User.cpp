@@ -10,6 +10,7 @@
 
 #include "User.h"
 #include "Log.h"
+#include "Cache.h"
 
 User::User(std::string p_region, std::string p_ddbtable, std::string p_realm, std::string p_username) {
   region = p_region;
@@ -58,6 +59,29 @@ bool hash_password(const std::string& unhashed, std::string& hashed) {
 
 bool User::authenticate(std::string password) {
   bool ret_val = false;
+
+  // need to hash the password before we check the cache
+  std::string hashed_pword;
+  if(hash_password(password, hashed_pword)) {
+    std::clog << kLogDebug << "Hashed input password = " << hashed_pword << std::endl;
+  } else {
+    // failed to hash password
+    std::clog << kLogErr << "Hashing password failed" << std::endl;
+    return(false);
+  }
+
+  // check the cache first
+  std::clog << kLogInfo << "Checking cache" << std::endl;
+  Cache c(realm, "/tmp", 120);
+  if(c.check_cache(username, hashed_pword)) {
+    // user is in the cache
+    // so exit here with true
+    std::clog << kLogInfo << "User found in cache, skipping AWS call" << std::endl;
+    return(true);
+  }
+  std::clog << kLogInfo << "User not in cache, calling AWS..." << std::endl;
+  // user not in cache, so keep running
+
   Aws::SDKOptions options;
   std::clog << kLogInfo << "Init for AWS API" << std::endl;
   Aws::InitAPI(options);
@@ -103,21 +127,18 @@ bool User::authenticate(std::string password) {
           std::string std_saved_password(saved_password.c_str(), saved_password.size());
 
           std::clog << kLogDebug << "Password from record = " << std_saved_password << std::endl;
-          // calc hash for password provided by user
-          std::string hashed_pword;
-          if(hash_password(password, hashed_pword)) {
-            std::clog << kLogDebug << "Hashed input password = " << hashed_pword << std::endl;
-            // compare the hashes
-            if(std_saved_password.compare(hashed_pword) == 0) {
-              std::clog << kLogInfo << "Password matches what is stored" << std::endl;
-              ret_val = true;
+          // compare the password hashes
+          if(std_saved_password.compare(hashed_pword) == 0) {
+            std::clog << kLogInfo << "Password matches what is stored" << std::endl;
+            // need to update the cache
+            if(c.save_in_cache(username, hashed_pword)) {
+              std::clog << kLogInfo << "Saved in cache" << std::endl;
             } else {
-              std::clog << kLogInfo << "Password does not match what is stored" << std::endl;
-              ret_val = false;
+              std::clog << kLogErr << "Unable to save in cache, check previous messages" << std::endl;
             }
+            ret_val = true;
           } else {
-            // failed to hash password
-            std::clog << kLogErr << "Hashing password failed" << std::endl;
+            std::clog << kLogInfo << "Password does not match what is stored" << std::endl;
             ret_val = false;
           }
         } else {
