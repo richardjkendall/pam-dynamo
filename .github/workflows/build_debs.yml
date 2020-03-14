@@ -50,10 +50,10 @@ jobs:
         make
         sudo make install
         cd /usr/lib/x86_64-linux-gnu
-        sudo ln -s /usr/local/lib/libsqlite3.so
-        sudo ln -s /usr/local/lib/libsqlite3.so.0
+        sudo ln -sf /usr/local/lib/libsqlite3.so
+        sudo ln -sf /usr/local/lib/libsqlite3.so.0
         cd /usr/include
-        sudo ln -s ../local/include/sqlite3.h
+        sudo ln -sf ../local/include/sqlite3.h
   
     - name: build & package libpam-dynamo
       run: |
@@ -76,6 +76,7 @@ jobs:
         cd $GITHUB_WORKSPACE/source
         cp $GITHUB_WORKSPACE/build/*.deb .
         cp $GITHUB_WORKSPACE/sdk_build/*.deb .
+        cp /usr/local/lib/libsqlite3.so.0 .
         docker build . -t ubuntu-pam-dynamo:${{steps.vars.outputs.tag}}
         docker tag ubuntu-pam-dynamo:${{steps.vars.outputs.tag}} ${{secrets.DOCKERHUB_USERNAME}}/ubuntu-pam-dynamo:${{steps.vars.outputs.tag}}
         docker tag ubuntu-pam-dynamo:${{steps.vars.outputs.tag}} ${{secrets.DOCKERHUB_USERNAME}}/ubuntu-pam-dynamo:latest
