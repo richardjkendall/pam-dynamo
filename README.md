@@ -8,6 +8,7 @@ It has the following features:
 
 * configurable AWS region, DynamoDB table and 'realm' all from the pam.d file
 * passwords are hashed using SHA3-256
+* configurable caching to a local sqlite3 database to increase response time and reduce AWS calls
 * logging to Syslog
 * packaged as a Docker image for further use (based on Ubuntu 18.04 LTS 'bionic')
 * will pick up AWS credentials as normal e.g. in your .aws folder, from environment variables or via instance/task roles if running on AWS infrastructure
@@ -15,7 +16,6 @@ It has the following features:
 ---
 **NOTES**
 * This module only implements pam_sm_authenticate, all other calls will return PAM_SUCCESS
-* This is not production ready, it makes a call to the AWS API for every single pam_authenticate call.  In environments where frequent calls are made (e.g. using it with apache mod_authnz_pam) this will be very expensive and could benefit from a cache being added.
 
 ---
 
@@ -42,8 +42,8 @@ If you want to build it yourself then you need:
 ## PAM Module Config
 Here is an example pam.d file which will work with this module
 ```
-account required        libpam-dynamo.so        ${REGION}  ${TABLE}  ${REALM}
-auth    required        libpam-dynamo.so        ${REGION}  ${TABLE}  ${REALM}
+account required        libpam-dynamo.so        ${REGION}  ${TABLE}  ${REALM} ${CACHE_FOLDER} ${CACHE_DURATION}
+auth    required        libpam-dynamo.so        ${REGION}  ${TABLE}  ${REALM} ${CACHE_FOLDER} ${CACHE_DURATION}
 ```
 
 Be sure to replace the variables as follows:
@@ -51,6 +51,8 @@ Be sure to replace the variables as follows:
 * REGION = AWS region e.g. ap-southeast-2
 * TABLE = DynamoDB table name
 * REALM = name of a realm configured in your table
+* CACHE_FOLDER = directory where cache databases will be created
+* CACHE_DURATION = number of seconds that cache entries will be valid for
 
 ## Expected table structure
 The module expects the table to look as follows:
