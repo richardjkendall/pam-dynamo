@@ -12,11 +12,13 @@
 #include "Log.h"
 #include "Cache.h"
 
-User::User(std::string p_region, std::string p_ddbtable, std::string p_realm, std::string p_username) {
+User::User(std::string p_region, std::string p_ddbtable, std::string p_realm, std::string p_dir, int dur, std::string p_username) {
   region = p_region;
   ddbtable = p_ddbtable;
   realm = p_realm;
   username = p_username;
+  cache_location = p_dir;
+  session_dur = dur;
 }
 
 // based on this code https://stackoverflow.com/questions/2262386/generate-sha256-with-openssl-and-c
@@ -72,7 +74,7 @@ bool User::authenticate(std::string password) {
 
   // check the cache first
   std::clog << kLogInfo << "Checking cache" << std::endl;
-  Cache c(realm, "/tmp", 120);
+  Cache c(realm, cache_location, session_dur);
   if(c.check_cache(username, hashed_pword)) {
     // user is in the cache
     // so exit here with true
