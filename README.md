@@ -60,5 +60,5 @@ The module expects the table to look as follows:
 | Field | Type | Special Role |
 |---|---|---|
 |realm|String|Hash key|
-|username|String|Sort key|
+|user|String|Sort key|
 |password|String|n/a contains SHA3-256 hashed password|
