@@ -62,3 +62,4 @@ The module expects the table to look as follows:
 |realm|String|Hash key|
 |user|String|Sort key|
 |password|String|n/a contains SHA3-256 hashed password|
+|scopes|list of strings|currently not used, planned for future feature support|
