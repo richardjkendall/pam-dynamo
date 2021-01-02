@@ -27,6 +27,11 @@ jobs:
         cd $GITHUB_WORKSPACE/aws-sdk-cpp
         git apply $GITHUB_WORKSPACE/source/aws-sdk-patch.patch
 
+    - name: Setup cmake
+      uses: jwlawson/actions-setup-cmake@v1.5
+      with:
+        cmake-version: '3.19.x'
+
     - name: build AWS CPP SDK (dynamodb only)
       run: |
         sudo apt-get update
