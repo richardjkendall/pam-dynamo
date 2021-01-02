@@ -22,7 +22,9 @@ It has the following features:
 ---
 
 ## How to use/build
-The easiest way is to extend the pre-build Docker image which is available here: https://hub.docker.com/r/richardjkendall/ubuntu-pam-dynamo
+The easiest way is to extend the pre-built Docker image which is available here: https://hub.docker.com/r/richardjkendall/ubuntu-pam-dynamo
+
+There is an example of how to do this here: https://github.com/richardjkendall/basicauth-rproxy
 
 If you want to build it yourself then you need:
 
