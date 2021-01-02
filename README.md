@@ -8,6 +8,7 @@ It has the following features:
 
 * configurable AWS region, DynamoDB table and 'realm' all from the pam.d file
 * passwords are hashed using SHA3-256
+* passwords are optionally salted with a user specific salt
 * configurable caching to a local sqlite3 database to increase response time and reduce AWS calls
 * logging to Syslog
 * packaged as a Docker image for further use (based on Ubuntu 18.04 LTS 'bionic')
@@ -16,6 +17,7 @@ It has the following features:
 ---
 **NOTES**
 * This module only implements pam_sm_authenticate, all other calls will return PAM_SUCCESS
+* v2 adds support for salted password hashes.
 
 ---
 
@@ -57,8 +59,13 @@ Be sure to replace the variables as follows:
 ## Expected table structure
 The module expects the table to look as follows:
 
-| Field | Type | Special Role |
+| Field | Type | Role |
 |---|---|---|
 |realm|String|Hash key|
 |username|String|Sort key|
-|password|String|n/a contains SHA3-256 hashed password|
+|password|String|contains SHA3-256 hashed password, optionally salted, see below|
+|salt|String|An optional string which is used to salt the password before hashing
+
+Where the `salt` field is present, it will be used when comparing the password provided in the pam_sm_authenticate call.
+
+The salt is prefixed to the password before hashing.  So if the password is 12345 and the salt is abcde then the hashed value would be abcde12345.

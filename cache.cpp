@@ -10,17 +10,28 @@
 const char *CREATE_TABLE_SQL = "CREATE TABLE IF NOT EXISTS users (" \
   "username TEXT NOT NULL PRIMARY KEY," \
   "password TEXT NOT NULL," \
+  "salt TEXT NULL," \
   "timestamp INT NOT NULL);";
 
 const char *CREATE_INDEX_SQL = "CREATE INDEX IF NOT EXISTS username_idx ON users(username);";
 
 const char *CHECK_FOR_USER_SQL = "SELECT timestamp FROM users WHERE username=?1 AND password=?2 AND timestamp>?3;";
 
-const char *ADD_USER_TO_CACHE_SQL = "INSERT INTO users(username, password, timestamp) " \
-  "VALUES(?1, ?2, ?3) " \
+const char *GET_SALT_SQL = "SELECT salt FROM users WHERE username=?1 AND timestamp>?2;";
+
+const char *ADD_USER_TO_CACHE_SQL = "INSERT INTO users(username, password, salt, timestamp) " \
+  "VALUES(?1, ?2, null, ?3) " \
   "ON CONFLICT(username) DO UPDATE SET " \
   "password = ?2, " \
+  "salt = null, " \
   "timestamp = ?3;";
+
+  const char *ADD_USER_W_SALT_TO_CACHE_SQL = "INSERT INTO users(username, password, salt, timestamp) " \
+  "VALUES(?1, ?2, ?3, ?4) " \
+  "ON CONFLICT(username) DO UPDATE SET " \
+  "password = ?2, " \
+  "salt = ?3, " \
+  "timestamp = ?4;";
 
 Cache::Cache(std::string p_realm, std::string p_directory, int p_session_duration) {
   realm = p_realm;
@@ -102,6 +113,44 @@ bool run_stmt(sqlite3_stmt *stmt, int expected_rc) {
   }
 }
 
+bool save_user_in_cache_w_salt(sqlite3 **db, std::string username, std::string password, std::string salt) {
+  bool success = true;
+
+  // prepare SQL statement
+  sqlite3_stmt *stmt;
+  if(prep_stmt(db, &stmt, ADD_USER_W_SALT_TO_CACHE_SQL)) {
+    std::clog << kLogInfo << "Statement prepared" << std::endl;
+    // add binds
+    if(!add_text_bind(stmt, 1, username, "username")) {
+      success = false;
+    }
+    if(!add_text_bind(stmt, 2, password, "password")) {
+      success = false;
+    }
+    if(!add_text_bind(stmt, 3, salt, "salt")) {
+      success = false;
+    }
+    int current_ts = (int)time(NULL);
+    if(!add_int_bind(stmt, 4, current_ts, "timestamp")) {
+      success = false;
+    }
+    std::clog << kLogInfo << "Binds added" << std::endl;
+    // run statement
+    if(success) {
+      if(run_stmt(stmt, SQLITE_DONE)) {
+        success = true;
+      } else {
+        success = false;
+      }
+    } 
+  } else {
+    std::clog << kLogErr << "Unable to prepare statement" << std::endl;
+  }
+  // free the statement as we finished with it
+  sqlite3_finalize(stmt);
+  return success;
+}
+
 bool save_user_in_cache(sqlite3 **db, std::string username, std::string password) {
   bool success = true;
 
@@ -137,6 +186,45 @@ bool save_user_in_cache(sqlite3 **db, std::string username, std::string password
   return success;
 }
 
+bool get_user_salt(sqlite3 **db, std::string username, int sess_dur, std::string& salt) {
+  bool success = true;
+  // prepare SQL statement
+  sqlite3_stmt *stmt;
+  if(prep_stmt(db, &stmt, GET_SALT_SQL)) {
+    std::clog << kLogInfo << "Statement prepared" << std::endl;
+    // add binds
+    if(!add_text_bind(stmt, 1, username, "username")) {
+      success = false;
+    }
+    int current_ts = (int)time(NULL);
+    if(!add_int_bind(stmt, 2, current_ts - sess_dur, "timestamp")) {
+      success = false;
+    }
+    std::clog << kLogInfo << "Binds added" << std::endl;
+    // run statement
+    if(success) {
+      if(run_stmt(stmt, SQLITE_ROW)) {
+        std::clog << kLogInfo << "Got a row" << std::endl;
+        if(sqlite3_column_type(stmt, 0) == SQLITE_NULL) {
+          std::clog << kLogInfo << "Salt is null" << std::endl;
+          success = false;
+        } else {
+          std::clog << kLogInfo << "Salt is not null" << std::endl;
+          success = true;
+          // need to get the salt value
+          salt = (char*)sqlite3_column_text(stmt, 0);
+        }
+        
+      } else {
+        success = false;
+      }
+    } 
+  }
+  // free the statement as we finished with it
+  sqlite3_finalize(stmt);
+  return success;
+}
+
 bool check_for_user_in_cache(sqlite3 **db, std::string username, std::string password, int sess_dur) {
   bool success = true;
   // prepare SQL statement
@@ -151,7 +239,6 @@ bool check_for_user_in_cache(sqlite3 **db, std::string username, std::string pas
       success = false;
     }
     int current_ts = (int)time(NULL);
-    //current_ts -= sess_dur;
     if(!add_int_bind(stmt, 3, current_ts - sess_dur, "timestamp")) {
       success = false;
     }
@@ -167,6 +254,20 @@ bool check_for_user_in_cache(sqlite3 **db, std::string username, std::string pas
   }
   // free the statement as we finished with it
   sqlite3_finalize(stmt);
+  return success;
+}
+
+bool Cache::save_in_cache_w_salt(std::string username, std::string password, std::string salt) {
+  bool success = false;
+  sqlite3 *db;
+  if(check_and_init(directory, realm, &db)) {
+    std::clog << kLogInfo << "Cache open" << std::endl;
+    success = save_user_in_cache_w_salt(&db, username, password, salt);
+    sqlite3_close(db);
+  } else {
+    std::clog << kLogWarning << "Could not open cache, look at previous log messages for hints" << std::endl;
+    success = false;
+  }
   return success;
 }
 
@@ -191,6 +292,19 @@ bool Cache::check_cache(std::string username, std::string password) {
     std::clog << kLogInfo << "Cache open" << std::endl;
     // check if user is in cache
     success = check_for_user_in_cache(&db, username, password, session_duration);
+    sqlite3_close(db);
+  } else {
+    std::clog << kLogWarning << "Could not open cache, look at previous log messages for hints" << std::endl;
+    success = false;
+  }
+  return success;
+}
+
+bool Cache::get_user_from_cache(std::string username, std::string& salt) {
+  bool success = false;
+  sqlite3 *db;
+  if(check_and_init(directory, realm, &db)) {
+    success = get_user_salt(&db, username, session_duration, salt);
     sqlite3_close(db);
   } else {
     std::clog << kLogWarning << "Could not open cache, look at previous log messages for hints" << std::endl;

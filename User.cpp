@@ -72,15 +72,27 @@ bool User::authenticate(std::string password) {
     return(false);
   }
 
-  // check the cache first
-  std::clog << kLogInfo << "Checking cache" << std::endl;
+  // need to check for a valid cache record with salt
+  std::clog << kLogInfo << "Checking cache for valid salt value" << std::endl;
   Cache c(realm, cache_location, session_dur);
+  std::string cache_salt;
+  if(c.get_user_from_cache(username, cache_salt)) {
+    // there's a record in the cache 
+    std::clog << kLogInfo << "Got salt from cache = " << cache_salt << std::endl;
+    // so we need to rehash the password along with the salt
+    hash_password(cache_salt + password, hashed_pword);
+    std::clog << kLogInfo << "Rehashed password = " << hashed_pword << std::endl;
+  }
+
+  // check the cache 
+  std::clog << kLogInfo << "Checking cache for username/password combination" << std::endl;
   if(c.check_cache(username, hashed_pword)) {
     // user is in the cache
     // so exit here with true
     std::clog << kLogInfo << "User found in cache, skipping AWS call" << std::endl;
     return(true);
   }
+
   std::clog << kLogInfo << "User not in cache, calling AWS..." << std::endl;
   // user not in cache, so keep running
 
@@ -110,10 +122,8 @@ bool User::authenticate(std::string password) {
     Aws::DynamoDB::Model::AttributeValue sortKey;
     sortKey.SetS(as_username);
     req.AddKey("user", sortKey);
-    // add projection expression (scope and password)
-    req.SetProjectionExpression("password,scopes");
 
-    // fire request
+    // fire request to API
     std::clog << kLogInfo << "Calling DynamoDB API in region=" << region << std::endl;
     const Aws::DynamoDB::Model::GetItemOutcome& result = dynamoClient.GetItem(req);
     std::clog << kLogInfo << "Back from call to API" << std::endl;
@@ -124,6 +134,16 @@ bool User::authenticate(std::string password) {
       if (item.size() > 1) {
         // got an item, check to see if password is present
         if(item.count("password") > 0) {
+          // check if we have salt
+          std::string std_salt;
+          bool salted = false;
+          if(item.count("salt") > 0) {
+            std::clog << kLogInfo << "Got salt, so re-hashing password with salt" << std::endl;
+            Aws::String salt = item.find("salt")->second.GetS();
+            std_salt = std::string(salt.c_str(), salt.size());
+            hash_password(std_salt + password, hashed_pword);
+            salted = true;
+          }
           // get password from record
           Aws::String saved_password = item.find("password")->second.GetS();
           std::string std_saved_password(saved_password.c_str(), saved_password.size());
@@ -133,12 +153,22 @@ bool User::authenticate(std::string password) {
           if(std_saved_password.compare(hashed_pword) == 0) {
             std::clog << kLogInfo << "Password matches what is stored" << std::endl;
             // need to update the cache
-            if(c.save_in_cache(username, hashed_pword)) {
-              std::clog << kLogInfo << "Saved in cache" << std::endl;
+            // if salted we should store the salt
+            if(salted) {
+              if(c.save_in_cache_w_salt(username, hashed_pword, std_salt)) {
+                std::clog << kLogInfo << "Saved in cache with salt" << std::endl;
+              } else {
+                std::clog << kLogErr << "Unable to save in cache, check previous messages" << std::endl;
+              }
+              ret_val = true;
             } else {
-              std::clog << kLogErr << "Unable to save in cache, check previous messages" << std::endl;
+              if(c.save_in_cache(username, hashed_pword)) {
+                std::clog << kLogInfo << "Saved in cache without salt" << std::endl;
+              } else {
+                std::clog << kLogErr << "Unable to save in cache, check previous messages" << std::endl;
+              }
+              ret_val = true;
             }
-            ret_val = true;
           } else {
             std::clog << kLogInfo << "Password does not match what is stored" << std::endl;
             ret_val = false;
