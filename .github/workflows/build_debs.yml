@@ -75,8 +75,6 @@ jobs:
       id: vars
       run: echo ::set-output name=tag::$(echo ${GITHUB_SHA::8})
     
-    - name: Get 
-    
     - name: docker build and publish
       run: |
         cd $GITHUB_WORKSPACE/source
