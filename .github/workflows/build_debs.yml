@@ -2,7 +2,6 @@ name: build-image
 
 on:
   push:
-    branches: [ master ]
     paths-ignore:
       - README.md
 
@@ -76,6 +75,8 @@ jobs:
       id: vars
       run: echo ::set-output name=tag::$(echo ${GITHUB_SHA::8})
     
+    - name: Get 
+    
     - name: docker build and publish
       run: |
         cd $GITHUB_WORKSPACE/source
@@ -84,6 +85,11 @@ jobs:
         cp /usr/local/lib/libsqlite3.so.0 .
         docker build . -t ubuntu-pam-dynamo:${{steps.vars.outputs.tag}}
         docker tag ubuntu-pam-dynamo:${{steps.vars.outputs.tag}} ${{secrets.DOCKERHUB_USERNAME}}/ubuntu-pam-dynamo:${{steps.vars.outputs.tag}}
-        docker tag ubuntu-pam-dynamo:${{steps.vars.outputs.tag}} ${{secrets.DOCKERHUB_USERNAME}}/ubuntu-pam-dynamo:latest
         docker push ${{secrets.DOCKERHUB_USERNAME}}/ubuntu-pam-dynamo:${{steps.vars.outputs.tag}}
+        
+    - name: publish latest if on main
+      if: github.ref == 'refs/heads/master'
+      run: |
+        echo "tagging as latest"
+        docker tag ubuntu-pam-dynamo:${{steps.vars.outputs.tag}} ${{secrets.DOCKERHUB_USERNAME}}/ubuntu-pam-dynamo:latest
         docker push ${{secrets.DOCKERHUB_USERNAME}}/ubuntu-pam-dynamo:latest
