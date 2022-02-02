@@ -1,4 +1,4 @@
-FROM ubuntu:bionic
+FROM ubuntu:18.04
 
 # install base requirements
 RUN apt-get update -y
