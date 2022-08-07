@@ -11,10 +11,11 @@ jobs:
 
     steps:
     - name: get AWS SDK source code
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
       with:
         path: 'aws-sdk-cpp'
         repository: 'aws/aws-sdk-cpp'
+        submodules: 'recursive'
     
     - name: get libpam-dynamo source code
       uses: actions/checkout@v2
