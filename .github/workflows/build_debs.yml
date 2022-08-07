@@ -1,13 +1,13 @@
 name: build-image
 
-on:
+on:  
   push:
     paths-ignore:
       - README.md
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
 
     steps:
     - name: get AWS SDK source code
