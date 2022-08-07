@@ -48,9 +48,9 @@ jobs:
         cd $GITHUB_WORKSPACE
         mkdir sqlite3
         cd sqlite3
-        wget https://www.sqlite.org/2020/sqlite-autoconf-3310100.tar.gz
-        tar xvf sqlite-autoconf-3310100.tar.gz
-        cd sqlite-autoconf-3310100
+        wget https://www.sqlite.org/2022/sqlite-autoconf-3390200.tar.gz
+        tar xvf sqlite-autoconf-3390200.tar.gz
+        cd sqlite-autoconf-3390200
         ./configure
         make
         sudo make install
