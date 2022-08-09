@@ -4,6 +4,9 @@ on:
   push:
     paths-ignore:
       - README.md
+    branches:
+      - master
+      - develop
 
 jobs:
   build:
@@ -92,3 +95,18 @@ jobs:
         echo "tagging as latest"
         docker tag ubuntu-pam-dynamo:${{steps.vars.outputs.tag}} ${{secrets.DOCKERHUB_USERNAME}}/ubuntu-pam-dynamo:latest
         docker push ${{secrets.DOCKERHUB_USERNAME}}/ubuntu-pam-dynamo:latest
+
+  updatebasicauth:
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.ref == 'refs/heads/develop'
+    
+    steps:
+    - name: get basic auth rproxy source code
+      uses: actions/checkout@v3
+      with:
+        path: 'basicauth'
+        repository: 'richardjkendall/basicauth-rproxy'
+        ref: develop
+    
+    
