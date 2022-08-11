@@ -113,6 +113,7 @@ jobs:
         path: 'basicauth'
         repository: 'richardjkendall/basicauth-rproxy'
         ref: develop
+        token: ${{secrets.GH_TOKEN}}
     
     - name: checkout new branch
       run: |
@@ -131,6 +132,6 @@ jobs:
         git push -u origin update-base-${{steps.vars.outputs.tag}}
         hub pull-request -b develop -m "Update base image to ${{steps.vars.outputs.tag}}"
       env:
-        GITHUB_TOKEN: ${{secrets.DOCKERHUB_USERNAME}}
+        GITHUB_TOKEN: ${{secrets.GH_TOKEN}}
     
     
