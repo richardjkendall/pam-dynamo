@@ -114,10 +114,23 @@ jobs:
         repository: 'richardjkendall/basicauth-rproxy'
         ref: develop
     
+    - name: checkout new branch
+      run: |
+        cd $GITHUB_WORKSPACE/basicauth
+        git checkout -b update-base-${{steps.vars.outputs.tag}}
+    
     - name: update docker tag in Dockerfile
       run: |
         cd $GITHUB_WORKSPACE/basicauth
-        sed -E -i 's/:[a-z0-9]+/:${{steps.vars.outputs.tag}}/g' Dockerfile
+        sed -E -i 's/:[a-z0-9]{8}/:${{steps.vars.outputs.tag}}/g' Dockerfile
         cat Dockerfile
+    
+    - name: push and raise PR
+      run: |
+        cd $GITHUB_WORKSPACE/basicauth
+        git push -u origin update-base-${{steps.vars.outputs.tag}}
+        hub pull-request -b develop -m "Update base image to ${{steps.vars.outputs.tag}}"
+      env:
+        GITHUB_TOKEN: ${{secrets.DOCKERHUB_USERNAME}}
     
     
