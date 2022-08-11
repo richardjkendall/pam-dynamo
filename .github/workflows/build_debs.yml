@@ -7,6 +7,7 @@ on:
     branches:
       - master
       - develop
+      - extendworkflow
 
 jobs:
   build:
@@ -99,7 +100,7 @@ jobs:
   updatebasicauth:
     runs-on: ubuntu-latest
     needs: build
-    if: github.ref == 'refs/heads/develop'
+    if: github.ref == 'refs/heads/extendworkflow'
     
     steps:
     - name: get basic auth rproxy source code
@@ -108,5 +109,11 @@ jobs:
         path: 'basicauth'
         repository: 'richardjkendall/basicauth-rproxy'
         ref: develop
+    
+    - name: update docker tag in Dockerfile
+      run: |
+        cd $GITHUB_WORKSPACE/basicauth
+        sed -E -i 's/:[a-z0-9]+/:${{jobs.build.steps.vars.outputs.tag}}/g' Dockerfile
+        cat Dockerfile
     
     
