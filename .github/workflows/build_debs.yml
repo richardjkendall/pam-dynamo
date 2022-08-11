@@ -126,6 +126,12 @@ jobs:
         sed -E -i 's/:[a-z0-9]{8}/:${{steps.vars.outputs.tag}}/g' Dockerfile
         cat Dockerfile
     
+    - name: set git identity details
+      run: |
+        cd $GITHUB_WORKSPACE/basicauth
+        git config user.email "action@github.com"
+        git config user.name "Github action"
+
     - name: commit, push, and raise PR
       run: |
         cd $GITHUB_WORKSPACE/basicauth
