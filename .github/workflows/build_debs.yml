@@ -126,9 +126,11 @@ jobs:
         sed -E -i 's/:[a-z0-9]{8}/:${{steps.vars.outputs.tag}}/g' Dockerfile
         cat Dockerfile
     
-    - name: push and raise PR
+    - name: commit, push, and raise PR
       run: |
         cd $GITHUB_WORKSPACE/basicauth
+        git add *
+        git commit -m "Updating Dockerfile base image to ${{steps.vars.outputs.tag}}"
         git push -u origin update-base-${{steps.vars.outputs.tag}}
         hub pull-request -b develop -m "Update base image to ${{steps.vars.outputs.tag}}"
       env:
