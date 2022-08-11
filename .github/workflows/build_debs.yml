@@ -4,6 +4,9 @@ on:
   push:
     paths-ignore:
       - README.md
+    branches:
+      - master
+      - develop
 
 jobs:
   build:
@@ -92,3 +95,50 @@ jobs:
         echo "tagging as latest"
         docker tag ubuntu-pam-dynamo:${{steps.vars.outputs.tag}} ${{secrets.DOCKERHUB_USERNAME}}/ubuntu-pam-dynamo:latest
         docker push ${{secrets.DOCKERHUB_USERNAME}}/ubuntu-pam-dynamo:latest
+
+  updatebasicauth:
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.ref == 'refs/heads/develop'
+    
+    steps:
+    - name: Get the tag for docker
+      id: vars
+      run: echo ::set-output name=tag::$(echo ${GITHUB_SHA::8})
+
+    - name: get basic auth rproxy source code
+      uses: actions/checkout@v3
+      with:
+        path: 'basicauth'
+        repository: 'richardjkendall/basicauth-rproxy'
+        ref: develop
+        token: ${{secrets.GH_TOKEN}}
+    
+    - name: checkout new branch
+      run: |
+        cd $GITHUB_WORKSPACE/basicauth
+        git checkout -b update-base-${{steps.vars.outputs.tag}}
+    
+    - name: update docker tag in Dockerfile
+      run: |
+        cd $GITHUB_WORKSPACE/basicauth
+        sed -E -i 's/:[a-z0-9]{8}/:${{steps.vars.outputs.tag}}/g' Dockerfile
+        cat Dockerfile
+    
+    - name: set git identity details
+      run: |
+        cd $GITHUB_WORKSPACE/basicauth
+        git config user.email "action@github.com"
+        git config user.name "Github action"
+
+    - name: commit, push, and raise PR
+      run: |
+        cd $GITHUB_WORKSPACE/basicauth
+        git add *
+        git commit -m "Updating Dockerfile base image to ${{steps.vars.outputs.tag}}"
+        git push -u origin update-base-${{steps.vars.outputs.tag}}
+        hub pull-request -b develop -m "Update base image to ${{steps.vars.outputs.tag}}"
+      env:
+        GITHUB_TOKEN: ${{secrets.GH_TOKEN}}
+    
+    
