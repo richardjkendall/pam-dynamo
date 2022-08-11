@@ -103,6 +103,10 @@ jobs:
     if: github.ref == 'refs/heads/extendworkflow'
     
     steps:
+    - name: Get the tag for docker
+      id: vars
+      run: echo ::set-output name=tag::$(echo ${GITHUB_SHA::8})
+
     - name: get basic auth rproxy source code
       uses: actions/checkout@v3
       with:
@@ -113,7 +117,7 @@ jobs:
     - name: update docker tag in Dockerfile
       run: |
         cd $GITHUB_WORKSPACE/basicauth
-        sed -E -i 's/:[a-z0-9]+/:${{jobs.build.steps.vars.outputs.tag}}/g' Dockerfile
+        sed -E -i 's/:[a-z0-9]+/:${{steps.vars.outputs.tag}}/g' Dockerfile
         cat Dockerfile
     
     
